@@ -1,4 +1,3 @@
-//#include <atmosphere.h>
 #include <avdsolver.h>
 #include <boundary.h>
 
@@ -67,7 +66,7 @@ void BCA(double HB, double* TB, double* PHB, double* ROHB, double* F) {
 
 /* 
  * P = P/P0
- * O - угол полураствора, град
+ * O - пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅ
 */
 static avd_t old_avd(double TB, double ROH, double VT, double M, double H, double P, double TW, double X, double O, double Rad, double XEF, int LT, int ICC, double GK)
 {
@@ -153,7 +152,6 @@ static avd_t old_avd(double TB, double ROH, double VT, double M, double H, doubl
 			EK=1.0;
 		EI=OI*(1.+0.89*OM)/(1.+OM);
 		ALC0=0.00243*pow(VT, 1.2)*pow(ROH, 0.8)*F1*F2*F3*DK*EK/XEF;
-//		printf("VT=%lf ROH=%lf F1=%lf F2=%lf F3=%lf DK=%lf EK=%lf XEF=%lf\n", VT, ROH, F1, F2, F3, DK, EK, XEF);
 		if (LT != 0) {
 			double F1L=1.0;
 			if (SIB < 1800.0)
@@ -201,9 +199,13 @@ avdsolver_t AVDSolver::Solve(double time)
 	double G1 = 0.;
 	avdsolver_t info;
 	info.G = 0.;
-	for (; thm->CURRENT_TIME < time; ) {
+	for (; thm->CURRENT_TIME < time; )
+	{
+		double AT = thm->m[thm->fcnum]->at(); /* Get ablation type of surface */
+		CBoundary *bc;
+		
 		TIMESTEP = min(TIMESTEP, time - thm->CURRENT_TIME);
-		/* Выполнить интерполяцию по граничным условиям. */
+		/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ. */
 		info.H = trm->H.val(thm->CURRENT_TIME);
 		double TB, PH, ROH, D;
 		BCA(info.H, &TB, &PH, &ROH, &D);
@@ -212,7 +214,7 @@ avdsolver_t AVDSolver::Solve(double time)
 		info.phi =  fabs(fmod(trm->PHI.val(thm->CURRENT_TIME), 360.));	
 		if (info.phi > 180.)
 			info.phi = 360. - info.phi;
-		info.mach = info.V/D;//sa_SoundSpeed(info.H);
+		info.mach = info.V/D;
 		bool isTurbulent;
 		if (info.H < gd->HT) {
 			info.XEF = gd->XET.val(info.mach, info.al, info.phi);
@@ -222,9 +224,8 @@ avdsolver_t AVDSolver::Solve(double time)
 			isTurbulent = false;
 		}
 		info.PP0 = gd->PP0.val(info.mach, info.al, info.phi);
-//		double TH = sa_Temperature(info.H);
 		
-		info.avd = old_avd(TB, ROH, info.V, info.mach, info.H, info.PP0, thm->TWL, gd->X, BCone->theta(gd->X), BCone->R(), info.XEF, !isTurbulent, 1, info.G);
+		info.avd = old_avd(TB, ROH, info.V, info.mach, info.H, info.PP0, thm->TWL, gd->X, BCone->theta(gd->X), BCone->R(), info.XEF, !isTurbulent, AT, info.G);
 		info.srt.QLrad = 0.; info.srt.QRrad = 0.; info.srt.QLconv = 0.; info.srt.QRconv = 0.;
 		double Tw = thm->TWL;
 		double A = thm->m[thm->fcnum]->a(Tw);
@@ -237,32 +238,49 @@ avdsolver_t AVDSolver::Solve(double time)
 		tmpbc = thm->LBC;
 		TIMESTEP = min(TIMESTEP, STD_TIMESTEP_MAX);
 		TIMESTEP = max(TIMESTEP, STD_TIMESTEP_MIN);
-		
-		CSOBoundary bc(info.avd.QCONV/(info.avd.IE-info.avd.IW), info.avd.I0, info.avd.IE, info.avd.IW, info.avd.P1*101325., thm->m[thm->fcnum]->eps(thm->TWL));
-		thm->setLBC(&bc);
+
+		if ((AT == 0) && (Tw >= thm->m[thm->fcnum]->Td(Tw)-20.0) && (info.avd.IE > info.avd.IW))
+			bc = new CFOBoundary(thm->m[thm->fcnum]->Td(0));
+		else
+			bc = new CSOBoundary(info.avd.QCONV/(info.avd.IE-info.avd.IW), info.avd.I0, info.avd.IE, info.avd.IW, info.avd.P1*101325., thm->m[thm->fcnum]->eps(thm->TWL));
+		thm->setLBC(bc);
 		assert(TIMESTEP > 0.);
 		solve_result_t srt = thsolver->Solve(thm->CURRENT_TIME+TIMESTEP);
 		Tw = thm->TWL;
 		info.srt = srt;
 		info.srt.QLrad += srt.QLrad; info.srt.QRrad += srt.QRrad; info.srt.QLconv += srt.QLconv; info.srt.QRconv += srt.QRconv;
-		/* Расчёт уноса */
-		if (Tw > 1000.) {
-			info.G = A+B*info.avd.I0/4186.8;
-			double r = thm->m[thm->fcnum]->r(Tw);
-			if (Tw <= 3000.)
-				G1 = 0.043*(A/0.19)*sqrt(16.-pow(6.-(Tw)/500., 2.))*(1.+1.4e7/(pow(info.avd.P1, 0.67)*exp(6.14e4/(Tw))));
-			else if (Tw > 3000.) {
-				G1 = 0.172*(A/0.19)*(1.+1.4e7/(pow(info.avd.P1, 0.67)*exp(6.14e4/(Tw))));
-			}
+		/* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ */
+		if (AT == 1)
+		{
+			if (Tw > 1000.)
+			{
+				info.G = A+B*info.avd.I0/4186.8;
+				double r = thm->m[thm->fcnum]->r(Tw);
+				
+				if (Tw <= 3000.)
+					G1 = 0.043*(A/0.19)*sqrt(16.-pow(6.-(Tw)/500., 2.))*(1.+1.4e7/(pow(info.avd.P1, 0.67)*exp(6.14e4/(Tw))));
+				else if (Tw > 3000.) {
+					G1 = 0.172*(A/0.19)*(1.+1.4e7/(pow(info.avd.P1, 0.67)*exp(6.14e4/(Tw))));
+				}
 			
-			assert(G1 >= 0.);
-			if (G1 < info.G)
-				info.G = G1;
-			else
-				thm->TWL = 6.14E+04/log(2.4e6/(fabs(info.G-0.172*(A/0.19))*pow(info.avd.P1, 0.67)));
-			if (Tw > 4500.)
-				printf("Tw=%lf T=%lf G=%lf G1=%lf Ps=%lf w=%lf TIMESTEP=%E fcnum=%d TWL=%lf\n", Tw, thm->T[thm->fcnum], info.G, G1, info.avd.P1/101325., thm->width[thm->fcnum], TIMESTEP, thm->fcnum, thm->TWL);
-			double Vdx = info.G*(info.avd.ALC1)/r;
+				assert(G1 >= 0.);
+				if (G1 < info.G)
+					info.G = G1;
+				else
+					thm->TWL = 6.14E+04/log(2.4e6/(fabs(info.G-0.172*(A/0.19))*pow(info.avd.P1, 0.67)));
+				if (Tw > 4500.)
+					printf("Tw=%lf T=%lf G=%lf G1=%lf Ps=%lf w=%lf TIMESTEP=%E fcnum=%d TWL=%lf\n", Tw, thm->T[thm->fcnum], info.G, G1, info.avd.P1/101325., thm->width[thm->fcnum], TIMESTEP, thm->fcnum, thm->TWL);
+				double Vdx = info.G*(info.avd.ALC1)/r;
+				thm->crop(0, Vdx*TIMESTEP);
+			}
+		} else if ((AT == 0) && (Tw >= thm->m[thm->fcnum]->Td(Tw)-20.0) && (info.avd.IE > info.avd.IW))
+		{
+			double Vdx;
+			double r = thm->m[thm->fcnum]->r(Tw);
+			
+			info.G = B*4186.8+A*(info.avd.IE-info.avd.IW);
+			Vdx = (info.avd.QCONV)/r/info.G;
+//			printf("A=%lf B=%lg IE=%lf Vdx=%lf TIMESTEP=%E\n", A, B, info.avd.IE, Vdx, TIMESTEP);
 			thm->crop(0, Vdx*TIMESTEP);
 		}
 		assert(TIMESTEP > 1.0E-20);
@@ -274,7 +292,6 @@ avdsolver_t AVDSolver::Solve(double time)
 	}
 	
 	info.time = thm->CURRENT_TIME;
-//	info.acp = ALC/1.3;
 	return info;
 }
 AVDSolver::~AVDSolver()

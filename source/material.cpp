@@ -21,6 +21,8 @@ ConstMaterial::ConstMaterial(const char* title, FILE* flog, double L, double RHO
 	this->EPS = EPS;
 	this->A = A;
 	this->B = B;
+	this->type = Type;
+	this->Tdestr = Tdestr;
 }
 
 double ConstMaterial::l(double T)
@@ -46,6 +48,14 @@ double ConstMaterial::a(double T)
 double ConstMaterial::b(double T)
 {
 	return B;
+}
+double ConstMaterial::Td(double T)
+{
+	return Tdestr;
+}
+int ConstMaterial::at(void)
+{
+	return type;
 }
 double ConstMaterial::heatQuantity(double T)
 {
@@ -159,6 +169,14 @@ double CUserMaterial::b(double T)
 		return in_LinearFunc(&fB, T);
 	else
 	return ConstMaterial::b(T);
+}
+double CUserMaterial::Td(double T)
+{
+	return ConstMaterial::Td(T);
+}
+int CUserMaterial::at(void)
+{
+	return ConstMaterial::at();
 }
 double CUserMaterial::heatQuantity(double T)
 {

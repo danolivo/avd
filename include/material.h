@@ -50,6 +50,8 @@ public:
 	 * @param T - current temperature.
 	 */
 	virtual double b(double T) = 0;
+	virtual double Td(double T) = 0;
+	virtual int at(void) = 0;
 	/** Ablation Heat Integral from T=0 temperature.
 	 * @param T - current temperature.
 	 */
@@ -80,7 +82,7 @@ public:
 	 * @param Tdestr - destruction temperature
 	 * @param A - ablation coefficient
 	 * @param B - ablation coefficient
-	 * @param Type - boundary type.
+	 * @param Type - Ablation type.
 	 */
 	ConstMaterial(const char* title, FILE* flog, double L, double RHO, double CP, double EPS,
 			double Tdestr, double A, double B, int Type);
@@ -108,6 +110,8 @@ public:
 	 * @param T - current temperature.
 	 */
 	virtual double b(double T);
+	virtual double Td(double T);
+	virtual int at(void);
 	/**
 	 * @brief Heat Quantity at the reference temperature
 	 * @param T - reference temperature
@@ -184,6 +188,8 @@ public:
 	 * @param T - current temperature.
 	 */
 	virtual double b(double T);
+	virtual double Td(double T);
+	virtual int at(void);
 	/**
 	 * @brief Heat Quantity at the reference temperature
 	 * @param T - reference temperature

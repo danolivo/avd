@@ -27,7 +27,6 @@ static int read(FILE* f, const char* fmt, void* par, bool isNewStr = false)
 	}
 	string tmp = format + "%";
 	tmp += fmt;
-//	printf("SSS: %s\n", tmp.c_str());
 	int r = sscanf(str, tmp.c_str(), par);
 	format +="%*";
 	format += fmt;

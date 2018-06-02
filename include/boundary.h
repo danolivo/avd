@@ -71,6 +71,33 @@ public:
 	 */
 	virtual void print() = 0;
 };
+
+class CFOBoundary : public CBoundary {
+public:
+	/**
+	 * @brief Class constructor
+	 * @param eps - base value of emissivity
+	 * @param Ie - base value of local boundary layer edge enthalpy
+	 * @param acp - base value of GHTC
+	 * @param flog - output device for logging
+	 */
+	CFOBoundary(double Tw, FILE* flog=stdout);
+	/**
+	 * @brief Выдать параметры граничного условия.
+	 * param Time - текущий момент расчётного времени.
+	 */
+	virtual BC_t GetBC(double Time);
+	/**
+	 * @brief Set time-dependent boundary parameter changes by multipliers.
+	 * @param pname - boundary parameter name
+	 * @param table - pointer to interpolation table for multiplier
+	 * @return Opcode. NULL_VALUE - interpolation table can't be used. -2 - pname is not valid
+	*/
+	virtual int SetTimeChangeCoefs(const char* pname, const func_points_t* table);
+	/** Распечатать внутренние данные класса. */
+	virtual void print();
+};
+
 /** Second-order boundary. */
 class CSOBoundary : public CBoundary {
 public:
