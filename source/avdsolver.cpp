@@ -199,6 +199,15 @@ avdsolver_t AVDSolver::Solve(double time)
 	double G1 = 0.;
 	avdsolver_t info;
 	info.G = 0.;
+	func_points_t points;
+	
+	points.count = 20;
+	points.x = new double [20];
+	points.y = new double [20];
+	FILE *fQ = fopen("q.txt", "rt");
+	for (int i=0; i< points.count; i++)
+		fscanf(fQ, "%lf\t%lf\n", &(points.x[i]), &(points.y[i]));
+	fclose(fQ);
 	for (; thm->CURRENT_TIME < time; )
 	{
 		double AT = thm->m[thm->fcnum]->at(); /* Get ablation type of surface */
@@ -226,6 +235,9 @@ avdsolver_t AVDSolver::Solve(double time)
 		info.PP0 = gd->PP0.val(info.mach, info.al, info.phi);
 		
 		info.avd = old_avd(TB, ROH, info.V, info.mach, info.H, info.PP0, thm->TWL, gd->X, BCone->theta(gd->X), BCone->R(), info.XEF, !isTurbulent, AT, info.G);
+		info.avd.QCONV = in_LinearFunc(&points, thm->CURRENT_TIME, 0);
+		info.avd.ALC = info.avd.QCONV/(info.avd.IE-info.avd.IW);
+		info.avd.ALC1 = info.avd.ALC;
 		info.srt.QLrad = 0.; info.srt.QRrad = 0.; info.srt.QLconv = 0.; info.srt.QRconv = 0.;
 		double Tw = thm->TWL;
 		double A = thm->m[thm->fcnum]->a(Tw);

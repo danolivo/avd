@@ -28,28 +28,4 @@ include $(wildcard *.d)
 
 clean:
 	rm *.o *.d
-	
-# CC=g++
-# CFLAGS=-lm
-# LDFLAGS=
-# SRCDIR=source
-# SOURCE_FILES=main.cpp avdtparser.cpp avdsolver.cpp atmosphere.cpp bluntedcone.cpp math_addons.cpp 
-# SOURCES=$(addprefix $(SRCDIR)/, $(SOURCE_FILES))
-# INCLUDEDIR=include
-# INCLUDES=$(addprefix -I, $(INCLUDEDIR))
-# OBJECTS=$(SOURCES:.cpp=.o)
-# EXECUTABLE=avd
 
-# all: $(SOURCES) $(EXECUTABLE)
-# 	echo $(SOURCES)
-	
-# $(EXECUTABLE): $(OBJECTS) 
-# 	$(CC) $(LDFLAGS) -I$(INCLUDEDIR) $(OBJECTS) -o $@
-
-# .cpp.o:
-# 	$(CC) $(CFLAGS) $< -o $@
-
-# .PHONY: clean
-
-# clean:
-# 	rm -rf *.o avd
